@@ -1,0 +1,22 @@
+# SkyFix on Netlify
+#
+# The website is a single static file (public/index.html), so there is nothing
+# to build: Netlify publishes the public/ folder as-is.
+#
+# The Python training server (server.py + train_rul.py) is NOT deployed here.
+# Netlify serves static files and short-lived serverless functions; it cannot
+# run a long-running Flask process or multi-minute scikit-learn training jobs.
+# Option 3 ("train on NASA files") on the deployed site talks to a copy of
+# server.py running on the visitor's own computer (http://127.0.0.1:5000).
+
+[build]
+  publish = "public"
+  command = ""
+
+# Send any unknown path to the app so typed or shared links never hit a 404.
+# The page uses #/hash routes, and real files still win because this rule is
+# not forced.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

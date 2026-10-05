@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install requirements",
+      "type": "shell",
+      "command": "python -m pip install -r requirements.txt",
+      "problemMatcher": []
+    },
+    {
+      "label": "Make sample data",
+      "type": "shell",
+      "command": "python make_sample_data.py",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run SkyFix",
+      "type": "shell",
+      "command": "python server.py",
+      "problemMatcher": [],
+      "isBackground": true
+    }
+  ]
+}

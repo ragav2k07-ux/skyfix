@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "SkyFix: run website + training server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/server.py",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "SkyFix: train FD001 from terminal",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/train_rul.py",
+      "args": ["--data", "sample_data", "--subset", "FD001"],
+      "console": "integratedTerminal"
+    }
+  ]
+}

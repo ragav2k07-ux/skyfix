@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SkyFix – Know before an engine fails</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E6EDF3; --panel:#FFFFFF; --ink:#0E1E2C; --muted:#53677A; --line:#C5D1DC;
+  --green:#2E7D5B; --amber:#B97C0A; --red:#C23B2B; --navy:#1F4E79; --onnavy:#fff;
+  --green-bg:#DCEEE5; --amber-bg:#F6E8C8; --red-bg:#F6D9D4; --gone:#3A2622; --ongone:#fff;
+  --hdr:#0B2A4A; --hdr2:#10375F; --hdrink:#EAF2FA; --hdrmut:#9DB6CE; --yel:#F2B705;
+  --hero1:#BCD7EE; --hero2:#EAF3FA; --sky:#2F7FBF; --ringline:rgba(11,42,74,.28);
+  --mono:'Share Tech Mono',ui-monospace,Menlo,Consolas,monospace;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#08121B; --panel:#101F2C; --ink:#E6EEF4; --muted:#8FA4B6; --line:#25384A;
+    --green:#4DB88A; --amber:#E0A93B; --red:#EE6A58; --navy:#7DB2E3; --onnavy:#08121B;
+    --green-bg:#173528; --amber-bg:#3A2D12; --red-bg:#40201C; --gone:#E9C9C3; --ongone:#40201C;
+    --hdr:#06192D; --hdr2:#0A2744; --hero1:#12304D; --hero2:#0A1824; --sky:#5AA6E0; --ringline:rgba(157,182,206,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#08121B; --panel:#101F2C; --ink:#E6EEF4; --muted:#8FA4B6; --line:#25384A;
+  --green:#4DB88A; --amber:#E0A93B; --red:#EE6A58; --navy:#7DB2E3; --onnavy:#08121B;
+  --green-bg:#173528; --amber-bg:#3A2D12; --red-bg:#40201C; --gone:#E9C9C3; --ongone:#40201C;
+  --hdr:#06192D; --hdr2:#0A2744; --hero1:#12304D; --hero2:#0A1824; --sky:#5AA6E0; --ringline:rgba(157,182,206,.3);
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:16px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding:16px 16px 48px}
+.ic{width:1em;height:1em;fill:currentColor;display:inline-block;vertical-align:-0.14em}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:linear-gradient(180deg,var(--hdr),var(--hdr2));color:var(--hdrink)}
+.topin{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:0 12px}
+.brand{display:flex;align-items:center;gap:8px;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:700;font-size:25px;letter-spacing:.14em;color:#fff;text-decoration:none;padding:6px 6px 6px 0}
+.brand .ic{color:var(--yel);font-size:24px}
+nav{display:flex;overflow-x:auto;flex:1;scrollbar-width:thin}
+nav a{padding:15px 11px 11px;white-space:nowrap;color:var(--hdrmut);text-decoration:none;font-weight:600;font-size:14px;letter-spacing:.04em;text-transform:uppercase;border-bottom:3px solid transparent}
+nav a:hover{color:#fff}
+nav a[aria-current="page"]{color:#fff;border-bottom-color:var(--yel)}
+.runway{height:6px;background:repeating-linear-gradient(90deg,var(--yel) 0 26px,transparent 26px 46px),#10151b}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+.top a:focus-visible{outline-color:var(--yel)}
+
+h1{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:700;font-size:clamp(36px,7vw,60px);line-height:1;margin:6px 0 8px;letter-spacing:.01em}
+h2{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:600;font-size:24px;margin:0 0 8px;letter-spacing:.04em;text-transform:uppercase}
+h2::before{content:"";display:inline-block;width:8px;height:19px;background:var(--yel);margin-right:9px;vertical-align:-3px;border-radius:1px}
+h3{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:600;font-size:19px;margin:12px 0 4px;letter-spacing:.03em}
+p{margin:0 0 10px;max-width:72ch}
+.sub{color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:7px;font-size:13px;padding:3px 11px;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:var(--muted);margin-bottom:12px;font-family:var(--mono);letter-spacing:.03em}
+.badge::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+.page{display:none}.page.on{display:block;animation:rise .3s ease}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:16px;margin-bottom:16px;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+.cols{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
+.cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-bottom:16px}
+.cols3 .card{margin:0}
+@media(max-width:800px){.cols{grid-template-columns:1fr}.hero{grid-template-columns:1fr!important}}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--navy);color:var(--onnavy);border:0;border-radius:4px;padding:10px 16px;font-weight:600;text-decoration:none;display:inline-block;letter-spacing:.02em}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.go{background:var(--yel);color:#1a1a1a}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0;align-items:center}
+.ctrl{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.ctrl label{font-weight:600}
+input[type=range]{flex:1 1 200px;accent-color:var(--navy);min-width:120px}
+input[type=number],select{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink)}
+input[type=number]{width:130px}
+input[type=file]{font:inherit;max-width:100%}
+
+/* hero */
+.hero{position:relative;overflow:hidden;display:grid;grid-template-columns:1.15fr 1fr;gap:12px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:24px;margin-bottom:16px;background:linear-gradient(160deg,var(--hero1),var(--hero2))}
+.hero::before{content:"";position:absolute;inset:-40% -10%;background:repeating-linear-gradient(-18deg,transparent 0 46px,rgba(255,255,255,.22) 46px 48px);opacity:.55;pointer-events:none}
+.hero>*{position:relative}
+.hero .sub{color:var(--ink);opacity:.82}
+.tag{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.tag .ic{color:var(--navy)}
+#radar{max-width:310px;width:100%;margin:0 auto}
+.sweep{transform-origin:140px 140px;animation:sweep 6s linear infinite}
+@keyframes sweep{to{transform:rotate(360deg)}}
+.b-red{fill:var(--red)}.b-amber{fill:var(--amber)}.b-green{fill:var(--green)}.b-gone{fill:var(--ink)}
+.radarcap{font-size:13px;color:var(--muted);text-align:center;margin:4px 0 0}
+
+/* readouts */
+.counts{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.count{flex:1 1 120px;border:1px solid var(--line);border-left:4px solid var(--line);background:var(--panel);padding:8px 14px;border-radius:4px}
+.count b{display:block;font-family:var(--mono);font-weight:400;font-size:34px;line-height:1.1}
+.count span{font-size:14px;color:var(--muted)}
+.count.red{border-left-color:var(--red)}.count.amber{border-left-color:var(--amber)}.count.green{border-left-color:var(--green)}
+.count.red b{color:var(--red)}.count.amber b{color:var(--amber)}.count.green b{color:var(--green)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:16px;padding:5px 14px;font-weight:600;font-size:14px}
+.chip[aria-pressed="true"]{background:var(--navy);color:var(--onnavy);border-color:var(--navy)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin-bottom:20px}
+.tile{position:relative;text-align:left;border:1px solid var(--line);border-radius:5px;padding:9px 10px 12px;background:var(--panel);color:var(--ink);overflow:hidden}
+.tile::after{content:"";position:absolute;top:10px;right:10px;width:9px;height:9px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
+.tile .id,.tile .lbl{font-size:13px;opacity:.9;color:inherit;display:block;letter-spacing:.03em}
+.tile .rul{font-family:var(--mono);font-weight:400;font-size:31px;line-height:1.15;color:inherit;display:block}
+.tile .bar{position:absolute;left:0;bottom:0;height:5px;background:currentColor;transition:width .25s}
+.acgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-bottom:20px}
+.acft{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:10px}
+.achead{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:600;letter-spacing:.06em}
+.achead .ic{color:var(--navy);font-size:20px}
+.achead .status{margin-left:auto;font-family:'Barlow',sans-serif;font-size:12px;padding:2px 10px;letter-spacing:0}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile:hover{transform:translateY(-2px);transition:transform .12s}
+.tile.green{background:var(--green-bg);color:var(--green)}.tile.amber{background:var(--amber-bg);color:var(--amber)}.tile.red{background:var(--red-bg);color:var(--red)}
+.tile.gone{background:var(--gone);color:var(--ongone);border-color:var(--gone)}.tile.gone::after{box-shadow:none;opacity:.4}
+svg{width:100%;height:auto;display:block}
+svg.ic{width:1em;height:1em}
+.gauge{max-width:320px;margin:4px auto 8px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:6px}
+.sw{display:inline-block;width:18px;height:0;border-top:3px solid var(--navy);vertical-align:middle;margin-right:5px}
+.sw.d{border-top:2px dashed var(--muted)}.sw.b{height:10px;border:0;background:var(--navy);opacity:.2;vertical-align:middle}
+.lead{font-weight:600;margin:0 0 10px}
+.attr{margin:8px 0}.attr .t{display:flex;justify-content:space-between;font-size:14px;gap:8px}
+.attr .t b{font-family:var(--mono);font-weight:400}
+.attr .tr{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-top:3px}.attr .tr i{display:block;height:100%;background:var(--navy)}
+.feed{list-style:none;margin:0;padding:0}
+.feed li button{width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:9px 2px;color:var(--ink);display:flex;gap:10px;align-items:baseline}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;margin-top:3px;align-self:flex-start}.dot.red{background:var(--red)}.dot.amber{background:var(--amber)}
+.feed small{color:var(--muted);margin-left:auto;white-space:nowrap;font-family:var(--mono)}
+pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:12px;font-family:var(--mono);font-size:13px;margin:10px 0 0;overflow-x:auto}
+code{font-family:var(--mono);font-size:13px}
+.big{font-family:var(--mono);font-weight:400;font-size:40px;line-height:1.1}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.kpi{border:1px solid var(--line);border-radius:4px;padding:10px 12px;background:var(--bg)}.kpi span{display:block;font-size:13px;color:var(--muted)}
+.callout{padding:10px 12px;border-radius:4px;background:var(--amber-bg);margin:10px 0;font-weight:500}.callout.ok{background:var(--green-bg)}.callout.bad{background:var(--red-bg)}
+.field{display:flex;flex-direction:column;gap:3px;font-size:14px;color:var(--muted)}
+.steps{margin:8px 0;padding-left:22px;max-width:76ch}.steps li{margin:4px 0}
+.fmt{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0}
+.fmt th,.fmt td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.fmt th{font-family:'Barlow Condensed',sans-serif;letter-spacing:.05em;text-transform:uppercase;font-size:14px}
+.tblwrap{overflow-x:auto}
+.msg{margin-top:10px;font-size:14px;padding:8px 10px;border-radius:4px;background:var(--bg);display:none}.msg.show{display:block}.msg.err{background:var(--red-bg)}.msg.ok{background:var(--green-bg)}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:12px 0}
+.flow button{text-align:left;border:1px solid var(--line);border-top:3px solid var(--yel);background:var(--panel);color:var(--ink);border-radius:4px;padding:10px 12px}
+.flow b{font-family:'Barlow Condensed',sans-serif;font-size:20px;display:block;letter-spacing:.04em}.flow span{font-size:14px;color:var(--muted)}
+.stepper{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.stepper button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:4px;padding:8px 12px;font-weight:600}
+.stepper button[aria-current="step"]{background:var(--navy);color:var(--onnavy);border-color:var(--navy)}
+.status{display:inline-block;padding:3px 12px;border-radius:12px;font-weight:600}
+.status.red{background:var(--red-bg);color:var(--red)}.status.amber{background:var(--amber-bg);color:var(--amber)}.status.green{background:var(--green-bg);color:var(--green)}.status.gone{background:var(--gone);color:var(--ongone)}
+.sl{display:grid;grid-template-columns:minmax(120px,1.2fr) 3fr 54px;gap:8px;align-items:center;margin:8px 0;font-size:14px}
+.sl output{font-family:var(--mono)}
+details.q{border-bottom:1px solid var(--line);padding:8px 0}details.q summary{cursor:pointer;font-weight:600}
+details.q p{margin:8px 0 2px}
+.hide{display:none}
+.trainfiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:12px 0}
+.trainfiles label{font-weight:600;color:var(--ink)}
+.trainfiles label code{font-weight:400;color:var(--muted)}
+.pbar{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:12px}
+.pbar i{display:block;height:100%;width:35%;background:var(--yel);animation:slide 1.2s ease-in-out infinite}
+@keyframes slide{0%{margin-left:-35%}100%{margin-left:100%}}
+#tlog{max-height:220px;overflow:auto;font-size:12px}
+.callout.srv{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.callout.srv .btn{padding:4px 12px;font-size:14px}
+[hidden]{display:none!important}
+
+/* loading screen: a plane orbiting in a holding pattern */
+#loader{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:radial-gradient(circle at 50% 40%,#0f3a66,#061a2e 70%);color:#EAF2FA;transition:opacity .35s;animation:lfail .01s 9s forwards}
+#loader.gone{opacity:0;pointer-events:none;visibility:hidden;transition:opacity .35s,visibility 0s .35s}
+@keyframes lfail{to{visibility:hidden;opacity:0;pointer-events:none}}
+.holding{position:relative;width:140px;height:140px;display:flex;align-items:center;justify-content:center}
+.orbit{position:absolute;inset:0;animation:spin 2.6s linear infinite}
+.orbit .ring{position:absolute;inset:0;border-radius:50%;border:2px dashed rgba(234,242,250,.28)}
+.orbit .trail{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 50%,rgba(242,183,5,.9) 100%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px))}
+.orbit .jet{position:absolute;top:-19px;left:50%;width:38px;height:38px;margin-left:-19px;color:var(--yel);filter:drop-shadow(0 0 6px rgba(242,183,5,.6))}
+@keyframes spin{to{transform:rotate(360deg)}}
+.holding .core{font-family:var(--mono);letter-spacing:.2em;font-size:15px;color:#9DB6CE}
+#lmsg{margin:0;font-family:var(--mono);letter-spacing:.06em;font-size:15px;color:#EAF2FA}
+@media (prefers-reduced-motion:reduce){
+  .orbit,.sweep,.page.on,.pbar i{animation:none}
+  .pbar i{width:100%}
+  .tile:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="ic-plane" viewBox="0 0 24 24"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></symbol></svg>
+<div id="loader" role="status" aria-live="polite">
+  <div class="holding"><div class="orbit"><div class="ring"></div><div class="trail"></div><svg class="ic jet"><use href="#ic-plane"/></svg></div><span class="core">SKYFIX</span></div>
+  <p id="lmsg">Preparing flight data…</p>
+</div>
+<header class="top"><div class="topin">
+  <a class="brand" href="#/home" data-go="home"><svg class="ic"><use href="#ic-plane"/></svg>SKYFIX</a>
+  <nav id="nav" aria-label="Pages">
+    <a href="#/home" data-go="home">Home</a>
+    <a href="#/how" data-go="how">How it works</a>
+    <a href="#/input" data-go="input">Give input</a>
+    <a href="#/fleet" data-go="fleet">Fleet</a>
+    <a href="#/engine" data-go="engine">Engine</a>
+    <a href="#/plan" data-go="plan">Planner</a>
+    <a href="#/cost" data-go="cost">Cost</a>
+    <a href="#/learn" data-go="learn">Learn</a>
+  </nav>
+</div><div class="runway" aria-hidden="true"></div></header>
+
+<div class="wrap">
+  <span class="badge" id="mode"></span>
+
+  <div class="card" id="ctl" style="padding:12px 16px">
+    <div class="ctrl">
+      <button class="btn" id="play">Play</button>
+      <button class="btn ghost" id="reset">Reset</button>
+      <label for="t">Fleet flight cycle: <span id="tv">0</span></label>
+      <input type="range" id="t" min="1" max="330" value="170">
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <section class="page" id="pg-home">
+    <div class="hero">
+      <div>
+        <div class="tag"><svg class="ic"><use href="#ic-plane"/></svg>Predictive maintenance</div>
+        <h1>Know before an engine fails.</h1>
+        <p class="sub" style="font-size:18px">SkyFix reads aircraft engine sensor data, predicts how many flights each engine has left, and helps you book repairs before anything breaks.</p>
+        <div class="row"><a class="btn go" href="#/how" data-go="how">See how it works</a><a class="btn ghost" href="#/fleet" data-go="fleet" style="background:rgba(255,255,255,.35)">Open the fleet</a><a class="btn ghost" href="#/input" data-go="input" style="background:rgba(255,255,255,.35)">Try your own data</a></div>
+      </div>
+      <div><div id="radar"></div><p class="radarcap">Each dot is one engine, two per aircraft. Closer to the centre means closer to repair.</p></div>
+    </div>
+    <div class="cols3">
+      <div class="card"><h2>The problem</h2><p>When an engine fails during service, the aircraft is grounded, passengers are stranded and repairs cost a lot. Repairing on a fixed calendar wastes parts on healthy engines.</p></div>
+      <div class="card"><h2>The idea</h2><p>Engine sensors change slowly as parts wear out. SkyFix learns those changes from engines that failed before. Every aircraft has two engines, and each one gets its own prediction.</p></div>
+      <div class="card"><h2>The result</h2><p>Maintenance is planned in advance: the most urgent engines go first, spare parts are ready, and the aircraft is not surprised on the ramp.</p></div>
+    </div>
+    <div class="card"><h2>The fleet right now</h2><div class="counts" id="homecounts"></div><p class="sub" style="font-size:14px">This is the live state of the fleet at the cycle chosen on the Fleet page.</p><a class="btn" href="#/fleet" data-go="fleet">Open fleet health</a></div>
+    <div class="card"><h2>Five steps from sensor to decision</h2><p class="sub">Tap a step to see it explained with real numbers.</p>
+      <div class="flow">
+        <button data-go="how" data-step="1"><b>1 Readings</b><span>Sensors record every flight</span></button>
+        <button data-go="how" data-step="2"><b>2 Clean</b><span>Remove noise and gaps</span></button>
+        <button data-go="how" data-step="3"><b>3 Patterns</b><span>Measure drift from healthy</span></button>
+        <button data-go="how" data-step="4"><b>4 Predict</b><span>Flights left, with a range</span></button>
+        <button data-go="how" data-step="5"><b>5 Decide</b><span>Priority, deadline, work order</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW -->
+  <section class="page" id="pg-how">
+    <h1 style="font-size:clamp(32px,6vw,48px)">How it works</h1>
+    <p class="sub">Follow one engine through all five steps. Change the engine or the fleet cycle and every number below changes.</p>
+    <div class="row" style="margin:0 0 12px"><label for="howEng" style="font-weight:600">Engine</label><select id="howEng"></select></div>
+    <div class="stepper" id="stepper"></div>
+    <div class="card" id="howbody"></div>
+    <div class="row" style="margin:0 0 16px"><button class="btn ghost" id="hback">Back</button><button class="btn" id="hnext">Next step</button></div>
+  </section>
+
+  <!-- INPUT -->
+  <section class="page" id="pg-input">
+    <h1 style="font-size:clamp(32px,6vw,48px)">Give input</h1>
+    <p class="sub">There are four ways to get data into SkyFix. Pick the one that fits.</p>
+
+    <div class="card">
+      <h2>Option 1: Type the readings for one engine</h2>
+      <p>Move the sliders to set the sensor readings and watch the prediction change at once. The numbers are in standard units: 0 means "like a healthy new engine", and the further from 0, the more the engine has worn.</p>
+      <div class="row" style="margin:0 0 8px"><button class="btn ghost" data-preset="healthy">Healthy</button><button class="btn ghost" data-preset="mid">Mid-life</button><button class="btn ghost" data-preset="worn">Worn</button><button class="btn ghost" data-preset="failing">Near failure</button></div>
+      <div id="mform"></div>
+      <div id="mres" aria-live="polite"></div>
+      <p class="sub" style="font-size:13px;margin-top:10px">This small model is trained inside your browser on the simulated engines. It shows the idea. The Python model trained on NASA data is the one to quote for accuracy.</p>
+    </div>
+
+    <div class="card">
+      <h2>Option 2: Upload a file</h2>
+      <ol class="steps">
+        <li>Collect engine sensor readings (for the hackathon, the NASA C-MAPSS files).</li>
+        <li>Run <code>python train_rul.py</code> (or use Option 3 below, which runs it for you). It trains the model and writes <code>predictions.csv</code>.</li>
+        <li>Choose that file here. Every page then shows your data.</li>
+      </ol>
+      <div class="row" style="margin-top:6px">
+        <input type="file" id="file" accept=".csv,.txt,text/csv" aria-label="Choose predictions CSV file">
+        <button class="btn ghost" id="example">Load example file</button>
+        <button class="btn ghost" id="demo">Back to demo data</button>
+      </div>
+      <div class="msg" id="msg" role="status" aria-live="polite"></div>
+      <h3>What the file should look like</h3>
+      <div class="tblwrap"><table class="fmt">
+        <tr><th>Column</th><th>Needed?</th><th>Meaning</th></tr>
+        <tr><td><code>unit</code></td><td>Yes</td><td>Engine number</td></tr>
+        <tr><td><code>cycle</code></td><td>Yes</td><td>Flight cycle of the reading</td></tr>
+        <tr><td><code>pred_rul</code></td><td>Yes</td><td>Predicted flight cycles left</td></tr>
+        <tr><td><code>pred_lo</code>, <code>pred_hi</code></td><td>Optional</td><td>Low and high end of the prediction range</td></tr>
+        <tr><td><code>true_rul</code></td><td>Optional</td><td>Actual cycles left, if known</td></tr>
+        <tr><td><code>aircraft</code></td><td>Optional</td><td>Which aircraft the engine is on. If missing, engines are paired two per aircraft in file order.</td></tr>
+        <tr><td>Other number columns</td><td>Optional</td><td>Treated as sensors for the "why flagged" panel</td></tr>
+      </table></div>
+<pre>unit,cycle,pred_rul,pred_lo,pred_hi,true_rul,s2,s3
+1,1,98.2,80.1,116.3,125,0.12,-0.31
+1,2,97.5,79.0,115.9,125,0.09,-0.28</pre>
+      <p class="sub" style="font-size:13px;margin-top:10px">The file is read inside your browser. Nothing is sent to a server.</p>
+    </div>
+
+    <div class="card" id="trainCard">
+      <h2>Option 3: Train the model on NASA files</h2>
+      <p>Choose the three NASA C-MAPSS files for one subset. SkyFix runs <code>train_rul.py</code> on your computer, then every page shows the trained predictions.</p>
+      <div class="callout srv" id="srv" role="status" aria-live="polite">Checking the training server…</div>
+      <div class="trainfiles">
+        <div class="field"><label for="fTrain">1. Training file <code>train_FD001.txt</code></label><input type="file" id="fTrain" accept=".txt,.csv,text/plain"></div>
+        <div class="field"><label for="fTest">2. Test file <code>test_FD001.txt</code></label><input type="file" id="fTest" accept=".txt,.csv,text/plain"></div>
+        <div class="field"><label for="fRul">3. Answers file <code>RUL_FD001.txt</code></label><input type="file" id="fRul" accept=".txt,.csv,text/plain"></div>
+        <div class="field"><label for="subset">Subset</label><select id="subset"><option>FD001</option><option>FD002</option><option>FD003</option><option>FD004</option></select></div>
+      </div>
+      <div class="row"><button class="btn go" id="trainBtn" disabled>Train and show results</button><button class="btn ghost" id="trainSample" disabled>Train on the bundled sample files</button><button class="btn ghost" id="dlPred" hidden>Download predictions.csv</button><a class="btn" id="toFleet" href="#/fleet" data-go="fleet" hidden>Open the fleet</a></div>
+      <div class="pbar" id="tbar" hidden><i></i></div>
+      <div class="msg" id="tmsg" role="status" aria-live="polite"></div>
+      <pre id="tlog" hidden aria-label="Training log"></pre>
+      <details class="q"><summary>How do I start the training server?</summary>
+        <ol class="steps"><li>Open the SkyFix folder in VS Code and open a terminal (Terminal menu, New Terminal).</li>
+        <li>Run <code>pip install -r requirements.txt</code> once.</li>
+        <li>Run <code>python server.py</code>, then open <code>http://localhost:5000</code> in your browser.</li>
+        <li>Pick the three files above and press Train. FD001 takes about a minute, FD004 a few minutes.</li></ol></details>
+      <p class="sub" style="font-size:13px;margin-top:10px">The files go only to the server on your own computer. Nothing leaves it. The sample files are simulated, not real NASA data.</p>
+    </div>
+
+    <div class="card">
+      <h2>Option 4: Live feed (real airline use)</h2>
+      <p>In a real airline the data is not typed or uploaded by hand. After every flight, the aircraft's data recorder sends the engine readings to a database. SkyFix reads the new rows, updates each prediction and refreshes the fleet. For the hackathon, the file upload in Option 2 or the training in Option 3 plays the part of that database.</p>
+    </div>
+  </section>
+
+  <!-- FLEET -->
+  <section class="page" id="pg-fleet">
+    <h1 style="font-size:clamp(32px,6vw,48px)">Fleet health</h1>
+    <p class="sub" id="fleetsum"></p>
+    <div class="counts" id="counts"></div>
+    <div class="chips" id="chips" role="group" aria-label="Filter engines">
+      <button class="chip" data-f="all" aria-pressed="true">All</button>
+      <button class="chip" data-f="red" aria-pressed="false">Act now</button>
+      <button class="chip" data-f="amber" aria-pressed="false">Plan work</button>
+      <button class="chip" data-f="green" aria-pressed="false">Healthy</button>
+    </div>
+    <p class="sub" style="font-size:14px">Every aircraft has two engines, and each engine gets its own prediction. The tile shows flights left. Tap an engine to open its page.</p>
+    <div class="acgrid" id="grid"></div>
+    <div class="card"><h2>Alert feed</h2><ul class="feed" id="feed"></ul></div>
+  </section>
+
+  <!-- ENGINE -->
+  <section class="page" id="pg-engine">
+    <h1 style="font-size:clamp(32px,6vw,48px)">Engine</h1>
+    <div class="row" style="margin:0 0 12px"><label for="engSel" style="font-weight:600">Engine</label><select id="engSel"></select></div>
+    <div class="cols">
+      <div>
+        <div class="card"><h2 id="dtitle">Engine</h2><p class="lead" id="dlead"></p><div class="gauge" id="gauge"></div><div id="chart"></div><div class="legend" id="legend"></div></div>
+        <div class="card"><h2>Work order</h2><p class="sub">A draft for the maintenance team, filled in from this engine's numbers.</p>
+          <div class="row" style="margin-top:0"><button class="btn" id="wo">Generate work order</button><button class="btn ghost" id="copy" hidden>Copy</button></div>
+          <pre id="wotext" hidden></pre></div>
+      </div>
+      <div><div class="card"><h2>Why this engine is flagged</h2><div id="attr"></div></div></div>
+    </div>
+  </section>
+
+  <!-- PLANNER -->
+  <section class="page" id="pg-plan">
+    <h1 style="font-size:clamp(32px,6vw,48px)">Maintenance planner</h1>
+    <p class="sub">Engines in amber or red are booked into hangar slots, most urgent first. Each has a safe deadline, set by the low end of its prediction range.</p>
+    <div class="card">
+      <div class="ctrl"><label for="cap">Engines the hangar can handle per 10 cycles: <span id="capv">4</span></label><input type="range" id="cap" min="1" max="12" value="4"></div>
+      <div id="plansum"></div><div id="gantt"></div>
+      <div class="legend"><span style="color:var(--green)">■ Booked in time</span><span style="color:var(--red)">■ Booked too late or no slot</span><span>| Safe deadline (never earlier than now)</span></div>
+      <div class="row"><button class="btn ghost" id="copyplan">Copy plan as text</button></div>
+    </div>
+  </section>
+
+  <!-- COST -->
+  <section class="page" id="pg-cost">
+    <h1 style="font-size:clamp(32px,6vw,48px)">Cost impact</h1>
+    <div class="card">
+      <div class="row" style="margin-top:0">
+        <div class="field"><label for="aog">Cost of one in-service failure (aircraft on ground)</label><input type="number" id="aog" value="250000" min="0" step="10000"></div>
+        <div class="field"><label for="plc">Cost of one planned engine removal</label><input type="number" id="plc" value="40000" min="0" step="5000"></div>
+      </div>
+      <div class="kpis" id="kpis"></div><div id="impchart"></div>
+      <p class="sub" style="margin-top:10px" id="impnote"></p>
+    </div>
+  </section>
+
+  <!-- LEARN -->
+  <section class="page" id="pg-learn">
+    <h1 style="font-size:clamp(32px,6vw,48px)">Learn</h1>
+    <div class="card"><h2>Words used in SkyFix</h2><div id="gloss"></div></div>
+    <div class="card"><h2>Questions</h2><div id="faq"></div></div>
+    <div class="card"><h2>Honest limits</h2>
+      <ul class="steps">
+        <li>The demo data on these pages is simulated. It copies the shape of NASA C-MAPSS data but is not real aircraft data.</li>
+        <li>The small model in Option 1 is a teaching model. Quote accuracy only from the Python model run on the real dataset.</li>
+        <li>SkyFix gives decision support. Real maintenance must be approved by licensed personnel under the airline's approved procedures.</li>
+        <li>Cost figures come from numbers you type. They are estimates, not audited savings.</li>
+      </ul></div>
+  </section>
+</div>
+
+<script>
+(function(){
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){return Math.sqrt(-2*Math.log(r()+1e-9))*Math.cos(2*Math.PI*r())}
+var N=24, CLIP=125, RED=30, AMBER=60, MAXC=330, WIN=10, HOR=10, MARGIN=3;
+var SENS=[["HPC outlet temp (T30)",1],["Fuel flow ratio (Ps30)",-1],["Core speed (NRc)",1],["Bleed enthalpy (htBleed)",-1]];
+var uploaded=false, HASBAND=true, HASTRUE=true, SNAMES=[], SSD=[], engines=[], feedAll=[], DM=null;
+var ROUTES=['home','how','input','fleet','engine','plan','cost','learn'], CTLPAGES=['how','fleet','engine','plan','cost'];
+var page='home', sel=1, now=170, timer=null, howStep=1, filt='all', dataName='demo';
+var $=function(id){return document.getElementById(id)};
+function st(v){return v<RED?'red':v<AMBER?'amber':'green'}
+function money(n){return '$'+Math.round(n).toLocaleString('en-US')}
+function acName(n){return 'A'+(n<10?'0'+n:''+n)}
+function posName(e){return e.pos==='L'?'Left engine':e.pos==='R'?'Right engine':'Engine '+e.pos}
+function nm(e){return e.ac+' · '+posName(e)}
+function shortNm(e){return e.ac+' '+(e.pos==='L'||e.pos==='R'?e.pos:'#'+e.pos)}
+function assignAC(){var cnt={};engines.forEach(function(e,i){
+  if(!e.ac){e.ac=acName(Math.floor(i/2)+1);e.pos=(i%2===0)?'L':'R'}
+  else{cnt[e.ac]=(cnt[e.ac]||0)+1;e.pos=cnt[e.ac]===1?'L':cnt[e.ac]===2?'R':String(cnt[e.ac])}})}
+function groupsOf(){var g=[],m={};engines.forEach(function(e){if(!m[e.ac]){m[e.ac]={ac:e.ac,list:[]};g.push(m[e.ac])}m[e.ac].list.push(e)});return g}
+function getE(){for(var i=0;i<engines.length;i++)if(engines[i].id===sel)return engines[i];return engines[0]}
+function cyc(e){return Math.min(now,e.life)}
+function isAlive(e){return uploaded||now<e.life}
+function val(e){return(!uploaded&&now>=e.life)?0:e.pr[cyc(e)-1]}
+function lowv(e){return(!uploaded&&now>=e.life)?0:e.lo[cyc(e)-1]}
+function stat(e){var g=!uploaded&&now>=e.life,v=val(e);return{gone:g,v:v,s:g?'gone':st(v)}}
+function label(e,s){if(s.gone)return e.first>0&&e.first<e.life?'flagged early':'end of life';return s.s==='red'?'act now':s.s==='amber'?'plan work':'healthy'}
+function topSens(e,n){var c=cyc(e);return SNAMES.map(function(_,k){return{k:k,d:Math.abs(e.se[k][c-1]-e.se[k][0])/SSD[k]}}).sort(function(a,b){return b.d-a.d}).slice(0,n)}
+function sdOf(engs,K){var out=[];for(var k=0;k<K;k++){var n=0,sm=0,sq=0;engs.forEach(function(e){e.se[k].forEach(function(v){n++;sm+=v;sq+=v*v})});var m=sm/Math.max(1,n);out.push(Math.sqrt(Math.max(1e-9,sq/Math.max(1,n)-m*m)))}return out}
+
+function buildDemo(){
+  engines=[];feedAll=[];var r=mulberry(20261015);
+  for(var i=0;i<N;i++){
+    var life=140+Math.floor(r()*(MAXC-140)), tr=[], pr=[], lo=[], hi=[], e=0, se=[[],[],[],[]];
+    var amp=[2.6+r()*1.4,2.2+r()*1.4,1.8+r()*1.4,1.5+r()*1.4];
+    for(var c=1;c<=life;c++){
+      var t=Math.min(CLIP,life-c), sd=3+16*(t/CLIP);
+      e=0.82*e+0.18*gauss(r)*sd*1.6;
+      var p=Math.max(0,Math.min(CLIP,t+e)), band=1.28*(2+8.5*(t/CLIP));
+      tr.push(t);pr.push(p);lo.push(Math.max(0,p-band));hi.push(Math.min(CLIP,p+band));
+      var deg=Math.pow(c/life,2.5);
+      for(var k=0;k<4;k++)se[k].push(SENS[k][1]*deg*amp[k]+gauss(r)*0.18);
+    }
+    var first=-1,amb=-1;for(var j=0;j<pr.length;j++){if(amb<0&&pr[j]<AMBER)amb=j+1;if(pr[j]<RED){first=j+1;break}}
+    var en={id:i+1,life:life,tr:tr,pr:pr,lo:lo,hi:hi,se:se,first:first,amb:amb};
+    engines.push(en);
+    if(amb>0)feedAll.push({c:amb,id:en.id,t:'amber'});if(first>0)feedAll.push({c:first,id:en.id,t:'red'});
+  }
+  feedAll.sort(function(a,b){return b.c-a.c});
+  assignAC();
+}
+// ---- tiny in-browser teaching model (ridge regression on the 4 demo sensors) ----
+function fx(x){var f=[1];for(var i=0;i<x.length;i++){f.push(x[i]);f.push(x[i]*x[i])}return f}
+function trainDM(){
+  var d=9, A=[], b=[], rows=0, i, j;
+  for(i=0;i<d;i++){A.push(new Array(d).fill(0));b.push(0)}
+  engines.forEach(function(e){for(var c=0;c<e.life;c+=2){var f=fx(e.se.map(function(s){return s[c]})),y=e.tr[c];rows++;
+    for(i=0;i<d;i++){b[i]+=f[i]*y;for(j=0;j<d;j++)A[i][j]+=f[i]*f[j]}}});
+  for(i=1;i<d;i++)A[i][i]+=1;
+  var M=A.map(function(r,ii){return r.concat([b[ii]])});
+  for(i=0;i<d;i++){var p=i;for(j=i+1;j<d;j++)if(Math.abs(M[j][i])>Math.abs(M[p][i]))p=j;var tmp=M[i];M[i]=M[p];M[p]=tmp;
+    for(j=0;j<d;j++){if(j===i)continue;var fct=M[j][i]/M[i][i];for(var k=i;k<=d;k++)M[j][k]-=fct*M[i][k]}}
+  var w=M.map(function(r,ii){return r[d]/r[ii]}), se2=0,n=0;
+  engines.forEach(function(e){for(var c=0;c<e.life;c+=2){var f=fx(e.se.map(function(s){return s[c]})),pr=0;for(i=0;i<d;i++)pr+=w[i]*f[i];pr=Math.max(0,Math.min(CLIP,pr));se2+=Math.pow(pr-e.tr[c],2);n++}});
+  DM={w:w,sd:Math.sqrt(se2/Math.max(1,n))};
+}
+function dmPredict(x){var f=fx(x),p=0;for(var i=0;i<f.length;i++)p+=DM.w[i]*f[i];p=Math.max(0,Math.min(CLIP,p));var band=1.28*DM.sd;return{v:p,lo:Math.max(0,p-band),hi:Math.min(CLIP,p+band)}}
+function setDemo(){
+  uploaded=false;HASBAND=true;HASTRUE=true;CLIP=125;MAXC=330;dataName='demo';
+  SNAMES=SENS.map(function(x){return x[0]});buildDemo();SSD=sdOf(engines,4);trainDM();
+  $('t').max=MAXC;now=170;pickSel();fillSelects();
+}
+function pickSel(){var a=engines.filter(isAlive).sort(function(a,b){return val(a)-val(b)});sel=a.length?a[0].id:engines[0].id}
+function fillSelects(){
+  var h='';engines.forEach(function(e){h+='<option value="'+e.id+'">'+nm(e)+'</option>'});
+  $('engSel').innerHTML=h;$('howEng').innerHTML=h;$('engSel').value=sel;$('howEng').value=sel;
+}
+
+// ---- shared view pieces ----
+function countsHTML(){
+  var cnt={red:0,amber:0,green:0,gone:0};engines.forEach(function(e){cnt[stat(e).s]++});
+  return '<div class="count red"><b>'+cnt.red+'</b><span>Act now (under '+RED+')</span></div>'+
+    '<div class="count amber"><b>'+cnt.amber+'</b><span>Plan work (under '+AMBER+')</span></div>'+
+    '<div class="count green"><b>'+cnt.green+'</b><span>Healthy</span></div>'+
+    (uploaded?'<div class="count"><b>'+engines.length+'</b><span>Engines loaded</span></div>':'<div class="count"><b>'+cnt.gone+'</b><span>Reached end of life</span></div>');
+}
+function chartSVG(e){
+  var c=cyc(e), w=600,h=230,L=36,B=24,T=8,R=8;
+  var X=function(x){return L+(x/e.life)*(w-L-R)}, Y=function(y){return T+(1-y/CLIP)*(h-T-B)};
+  var s='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Predicted versus actual remaining life for '+nm(e)+'">';
+  s+='<rect x="'+L+'" y="'+Y(RED)+'" width="'+(w-L-R)+'" height="'+(Y(0)-Y(RED))+'" fill="var(--red-bg)"/>';
+  s+='<rect x="'+L+'" y="'+Y(AMBER)+'" width="'+(w-L-R)+'" height="'+(Y(RED)-Y(AMBER))+'" fill="var(--amber-bg)"/>';
+  [0,30,60,90,125].forEach(function(g){if(g<=CLIP)s+='<text x="'+(L-6)+'" y="'+(Y(g)+4)+'" font-size="11" text-anchor="end" fill="var(--muted)">'+g+'</text>'});
+  s+='<line x1="'+L+'" y1="'+Y(0)+'" x2="'+(w-R)+'" y2="'+Y(0)+'" stroke="var(--line)"/>';
+  s+='<text x="'+(w/2)+'" y="'+(h-4)+'" font-size="11" text-anchor="middle" fill="var(--muted)">flight cycles</text>';
+  if(HASBAND){var band='';for(var i=0;i<c;i++)band+=(i?'L':'M')+X(i+1).toFixed(1)+' '+Y(e.hi[i]).toFixed(1);
+    for(var i2=c-1;i2>=0;i2--)band+='L'+X(i2+1).toFixed(1)+' '+Y(e.lo[i2]).toFixed(1);
+    s+='<path d="'+band+'Z" fill="var(--navy)" opacity="0.2"/>'}
+  var pt=function(a){var p='';for(var i=0;i<c;i++)p+=(i?'L':'M')+X(i+1).toFixed(1)+' '+Y(a[i]).toFixed(1);return p};
+  if(HASTRUE)s+='<path d="'+pt(e.tr)+'" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 4"/>';
+  s+='<path d="'+pt(e.pr)+'" fill="none" stroke="var(--navy)" stroke-width="2.5"/>';
+  if(e.first>0&&e.first<=c)s+='<line x1="'+X(e.first)+'" y1="'+T+'" x2="'+X(e.first)+'" y2="'+Y(0)+'" stroke="var(--red)" stroke-width="1.5"/><text x="'+(X(e.first)+4)+'" y="'+(T+12)+'" font-size="11" fill="var(--red)">flagged</text>';
+  return s+'</svg>';
+}
+function legendHTML(){return '<span><i class="sw"></i>Predicted life left</span>'+(HASBAND?'<span><i class="sw b"></i>Prediction range</span>':'')+(HASTRUE?'<span><i class="sw d"></i>Actual life left</span>':'')}
+function leadText(e){
+  var c=cyc(e);
+  if(uploaded)return(e.first>0&&e.first<=c?'First flagged red at cycle '+e.first+'. ':'No red flag yet. ')+'Predicted '+Math.round(val(e))+' cycles left'+(HASBAND?' (likely between '+Math.round(lowv(e))+' and '+Math.round(e.hi[c-1])+')':'')+'.'+(HASTRUE?' Actual: '+Math.round(e.tr[c-1])+'.':'');
+  if(e.first>0&&e.first<=c)return 'Flagged red at cycle '+e.first+', '+(e.life-e.first)+' cycles before end of life.';
+  if(now>=e.life)return 'Reached end of life without a red flag. Check the model for this engine.';
+  return 'No red flag yet. Predicted '+Math.round(val(e))+' cycles left (likely between '+Math.round(lowv(e))+' and '+Math.round(e.hi[c-1])+').';
+}
+function attrHTML(e){
+  var c=cyc(e), all=topSens(e,4), sum=all.reduce(function(a,o){return a+o.d},0)||1, ah='';
+  all.forEach(function(o){
+    var pct=Math.round(o.d/sum*100), a=e.se[o.k].slice(0,c), mn=Math.min.apply(null,a), mx=Math.max.apply(null,a), sp='';
+    a.forEach(function(v,i){sp+=(i?'L':'M')+(i/Math.max(1,c-1)*100).toFixed(1)+' '+(18-(v-mn)/(mx-mn+1e-9)*16).toFixed(1)});
+    ah+='<div class="attr"><div class="t"><span>'+SNAMES[o.k]+'</span><b>'+pct+'%</b></div><div class="tr"><i style="width:'+pct+'%"></i></div><svg viewBox="0 0 100 20" height="20" preserveAspectRatio="none" aria-hidden="true"><path d="'+sp+'" fill="none" stroke="var(--muted)" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg></div>';
+  });
+  return ah+'<p class="sub" style="font-size:13px;margin:8px 0 0">Share of each sensor in this engine\'s drift since cycle 1'+(uploaded?'.':' (simulated).')+'</p>';
+}
+function gaugeSVG(v,lo,hi,band){
+  var cx=110,cy=112,r=84;
+  var pol=function(rr,x){var a=Math.PI*(1-Math.min(Math.max(x,0),CLIP)/CLIP);return[cx+rr*Math.cos(a),cy-rr*Math.sin(a)]};
+  var arc=function(rr,x0,x1,col,w,op){var p0=pol(rr,x0),p1=pol(rr,x1);return '<path d="M'+p0[0].toFixed(1)+' '+p0[1].toFixed(1)+' A'+rr+' '+rr+' 0 0 1 '+p1[0].toFixed(1)+' '+p1[1].toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+w+'"'+(op?' opacity="'+op+'"':'')+'/>'};
+  var s='<svg viewBox="-16 -18 252 184" role="img" aria-label="Gauge: '+Math.round(v)+' flights left">';
+  s+=arc(r,0,RED,'var(--red)',14)+arc(r,RED,AMBER,'var(--amber)',14)+arc(r,AMBER,CLIP,'var(--green)',14);
+  if(band)s+=arc(r+13,lo,hi,'var(--navy)',4,0.85);
+  [0,RED,AMBER,CLIP].forEach(function(t){var p=pol(r+26,t);s+='<text x="'+p[0].toFixed(1)+'" y="'+(p[1]+4).toFixed(1)+'" font-size="11" text-anchor="middle" fill="var(--muted)">'+Math.round(t)+'</text>'});
+  var n=pol(r-8,v);
+  s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+n[0].toFixed(1)+'" y2="'+n[1].toFixed(1)+'" stroke="var(--ink)" stroke-width="3.5" stroke-linecap="round"/><circle cx="'+cx+'" cy="'+cy+'" r="7" fill="var(--ink)"/>';
+  s+='<text x="'+cx+'" y="'+(cy+30)+'" font-size="28" text-anchor="middle" fill="var(--ink)" style="font-family:var(--mono)">'+Math.round(v)+'</text><text x="'+cx+'" y="'+(cy+43)+'" font-size="10" text-anchor="middle" fill="var(--muted)" letter-spacing="1.5">FLIGHTS LEFT</text>';
+  return s+'</svg>';
+}
+function radarSVG(){
+  var s='<svg viewBox="0 0 280 280" role="img" aria-label="Fleet radar. Each dot is an engine. Closer to the centre means closer to needing repair.">';
+  s+='<circle cx="140" cy="140" r="135" fill="var(--panel)" opacity="0.55"/>';
+  [45,90,135].forEach(function(r){s+='<circle cx="140" cy="140" r="'+r+'" fill="none" stroke="var(--ringline)" stroke-width="1"/>'});
+  s+='<line x1="140" y1="5" x2="140" y2="275" stroke="var(--ringline)"/><line x1="5" y1="140" x2="275" y2="140" stroke="var(--ringline)"/>';
+  s+='<g class="sweep"><path d="M140 140 L140 5 A135 135 0 0 1 '+(140+135*Math.sin(0.55)).toFixed(1)+' '+(140-135*Math.cos(0.55)).toFixed(1)+' Z" fill="var(--sky)" opacity="0.3"/></g>';
+  engines.forEach(function(e){var t=stat(e),a=((e.id*137.5)%360)*Math.PI/180,rad=16+Math.min(1,t.v/CLIP)*116;
+    s+='<circle class="b-'+t.s+'" cx="'+(140+rad*Math.sin(a)).toFixed(1)+'" cy="'+(140-rad*Math.cos(a)).toFixed(1)+'" r="5.5" stroke="var(--panel)" stroke-width="1.5"/>'});
+  return s+'<circle cx="140" cy="140" r="3" fill="var(--ink)"/></svg>';
+}
+function actionFor(e){var s=stat(e);if(s.gone)return 'This engine reached end of life in the replay.';return s.s==='red'?'Schedule maintenance within about 5 flights.':s.s==='amber'?'Plan work at the next scheduled check.':'Keep monitoring. No action needed.'}
+
+// ---- pages ----
+function renderHome(){$('homecounts').innerHTML=countsHTML();$('radar').innerHTML=radarSVG()}
+function renderFleet(){
+  $('counts').innerHTML=countsHTML();
+  var gs=groupsOf();
+  $('fleetsum').textContent=gs.length+' aircraft · '+engines.length+' engines'+(uploaded?'':' (two engines on every aircraft)');
+  var html='';
+  gs.forEach(function(g){
+    var st0=g.list.map(stat), show=filt==='all'||st0.some(function(x){return x.s===filt});if(!show)return;
+    var worst=st0.slice().sort(function(x,y){return x.v-y.v})[0], wl=worst.gone?'End of life':worst.s==='red'?'Act now':worst.s==='amber'?'Plan work':'Healthy';
+    html+='<div class="acft"><div class="achead"><svg class="ic"><use href="#ic-plane"/></svg><b>'+g.ac+'</b><span class="status '+worst.s+'">'+wl+'</span></div><div class="pair">';
+    g.list.forEach(function(e,i){var s=st0[i];
+      html+='<button class="tile '+s.s+'" data-id="'+e.id+'" aria-label="'+nm(e)+', '+Math.round(s.v)+' cycles left, '+label(e,s)+'"><span class="id">'+posName(e)+'</span><span class="rul">'+Math.round(s.v)+'</span><span class="lbl">'+label(e,s)+'</span><span class="bar" style="width:'+Math.round(s.v/CLIP*100)+'%"></span></button>'});
+    html+='</div></div>'});
+  $('grid').innerHTML=html||'<p class="sub">No aircraft in this group at this cycle.</p>';
+  var fh='',sh=feedAll.filter(function(f){return f.c<=now}).slice(0,10);
+  if(!sh.length)fh='<li style="padding:8px 2px;color:var(--muted)">No alerts yet. Move the slider forward.</li>';
+  sh.forEach(function(f){fh+='<li><button data-id="'+f.id+'"><i class="dot '+f.t+'"></i><span>'+nm(engines.filter(function(x){return x.id===f.id})[0])+' crossed into '+(f.t==='red'?'red':'amber')+'</span><small>cycle '+f.c+'</small></button></li>'});
+  $('feed').innerHTML=fh;
+  document.querySelectorAll('#chips .chip').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.f===filt?'true':'false')});
+}
+function renderEngine(){
+  var e=getE(), c=cyc(e);$('engSel').value=sel;
+  $('dtitle').textContent=nm(e)+' – cycle '+c+' of '+e.life;
+  $('dlead').textContent=leadText(e);$('gauge').innerHTML=gaugeSVG(val(e),lowv(e),HASBAND?e.hi[c-1]:val(e),HASBAND);$('chart').innerHTML=chartSVG(e);$('legend').innerHTML=legendHTML();$('attr').innerHTML=attrHTML(e);
+  $('wotext').hidden=true;$('copy').hidden=true;
+}
+function workOrder(){
+  var e=getE(), v=Math.round(val(e)), c=cyc(e), names=topSens(e,3).map(function(o){return SNAMES[o.k]});
+  var pri=v<RED?'URGENT – schedule within 5 flights':v<AMBER?'Plan at next scheduled check':'Routine – no action needed';
+  var tasks=v<AMBER?'1. Borescope inspection of compressor and turbine sections.\n2. Verify and calibrate the drifting sensors.\n3. Review trend data with engineering before release to service.':'1. Continue normal monitoring.';
+  return 'WORK ORDER – '+nm(e).toUpperCase()+'\nPriority: '+pri+'\nPredicted life left: '+v+' cycles'+(HASBAND?' (range '+Math.round(lowv(e))+'–'+Math.round(e.hi[c-1])+')':'')+' at cycle '+c+'\nDrifting sensors: '+names.join(', ')+'\n\nTasks:\n'+tasks+'\n\nParts to pre-stage: '+(v<AMBER?'Compressor blade set, sensor kit, gaskets.':'None.')+'\nEstimated downtime: '+(v<AMBER?'6–12 hours':'none')+'\n\nDraft only. Must be reviewed and released by licensed maintenance personnel.';
+}
+
+function sched(cap){
+  var list=engines.filter(function(e){return isAlive(e)&&val(e)<AMBER}).map(function(e){return{e:e,dl:Math.max(now,now+Math.round(lowv(e))-MARGIN),rul:val(e)}}).sort(function(a,b){return a.dl-b.dl});
+  var used=[];for(var i=0;i<HOR;i++)used.push(0);var late=0;
+  list.forEach(function(it){var w=0;while(w<HOR&&used[w]>=cap)w++;it.w=w<HOR?w:-1;if(w<HOR)used[w]++;it.start=now+Math.max(0,it.w)*WIN;it.late=it.w<0||it.start>it.dl;if(it.late)late++});
+  return{list:list,late:late};
+}
+function renderPlan(){
+  var cap=+$('cap').value;$('capv').textContent=cap;
+  var res=sched(cap), n=res.list.length, minCap=0;
+  for(var c=1;c<=12;c++){if(sched(c).late===0){minCap=c;break}}
+  var sm;
+  if(!n)sm='<div class="callout ok">No engines need work at cycle '+now+'. Move the fleet forward to see the plan fill up.</div>';
+  else if(res.late===0)sm='<div class="callout ok">'+n+' engines need work. All can be booked before their safe deadline.</div>';
+  else sm='<div class="callout bad">'+n+' engines need work and '+res.late+' cannot be booked in time. '+(minCap?'The hangar needs room for '+minCap+' engines per 10 cycles to clear this list.':'Even 12 per window is not enough.')+'</div>';
+  $('plansum').innerHTML=sm;
+  if(!n){$('gantt').innerHTML='';return}
+  var rowH=26,w=640,L=84,h=n*rowH+28,X=function(c){return L+(c-now)/(WIN*HOR)*(w-L-8)};
+  var s='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Hangar schedule">';
+  for(var g=0;g<=HOR;g++){var gx=L+g/HOR*(w-L-8);s+='<line x1="'+gx+'" y1="14" x2="'+gx+'" y2="'+(h-4)+'" stroke="var(--line)"/>';if(g%2===0)s+='<text x="'+gx+'" y="10" font-size="10" text-anchor="middle" fill="var(--muted)">'+(now+g*WIN)+'</text>'}
+  res.list.forEach(function(it,i){
+    var y=18+i*rowH;
+    s+='<text x="'+(L-8)+'" y="'+(y+14)+'" font-size="12" text-anchor="end" fill="var(--ink)">'+shortNm(it.e)+'</text>';
+    if(it.w>=0){var bx=X(it.start),bw=(w-L-8)/HOR-3;s+='<rect x="'+(bx+1)+'" y="'+(y+3)+'" width="'+bw+'" height="16" rx="3" fill="'+(it.late?'var(--red)':'var(--green)')+'"/>'}
+    else s+='<text x="'+(L+6)+'" y="'+(y+14)+'" font-size="11" fill="var(--red)">no slot in the next '+(WIN*HOR)+' cycles</text>';
+    var dx=Math.min(w-8,Math.max(L,X(it.dl)));
+    s+='<line x1="'+dx+'" y1="'+y+'" x2="'+dx+'" y2="'+(y+22)+'" stroke="var(--ink)" stroke-width="2"/>';
+  });
+  $('gantt').innerHTML=s+'</svg>';
+}
+function planText(){
+  var res=sched(+$('cap').value),t='HANGAR PLAN at fleet cycle '+now+' ('+$('cap').value+' engines per '+WIN+' cycles)\n';
+  res.list.forEach(function(it){t+=nm(it.e)+': '+(it.w>=0?'slot at cycle '+it.start:'no slot')+', safe deadline cycle '+it.dl+(it.late?'  [AT RISK]':'')+'\n'});
+  return t+'\nDraft plan. Must be reviewed by licensed maintenance personnel.';
+}
+function renderCost(){
+  var aog=Math.max(0,+$('aog').value||0), plc=Math.max(0,+$('plc').value||0), mx,base,withSF,w=600,h=110,l1,l2;
+  var bar=function(y,v,lab,col){var bw=(w-190)*v/mx;return '<text x="0" y="'+(y+17)+'" font-size="13" fill="var(--ink)">'+lab+'</text><rect x="170" y="'+y+'" width="'+Math.max(2,bw)+'" height="26" rx="3" fill="'+col+'"/><text x="'+(176+bw)+'" y="'+(y+18)+'" font-size="12" fill="var(--ink)">'+money(v)+'</text>'};
+  if(uploaded){
+    var reds=engines.filter(function(e){return val(e)<RED}).length, ambs=engines.filter(function(e){var v=val(e);return v>=RED&&v<AMBER}).length;
+    base=reds*aog;withSF=reds*plc;mx=Math.max(base,1);
+    $('kpis').innerHTML='<div class="kpi"><span>Flagged red now</span><div class="big" style="color:var(--red)">'+reds+'</div></div><div class="kpi"><span>Flagged amber now</span><div class="big" style="color:var(--amber)">'+ambs+'</div></div><div class="kpi"><span>Potential savings</span><div class="big" style="color:var(--green)">'+money(base-withSF)+'</div></div>';
+    l1='If they fail in service';l2='Planned removal';
+    $('impnote').textContent='Potential savings assume every engine flagged red would otherwise fail in service and is instead removed on a planned schedule. With your own data this is an estimate, not a record of past events.';
+  }else{
+    var ev=engines.filter(function(e){return now>=e.life}), caught=ev.filter(function(e){return e.first>0&&e.first<e.life}), missed=ev.length-caught.length;
+    base=ev.length*aog;withSF=caught.length*plc+missed*aog;mx=Math.max(base,1);
+    var lead=caught.length?Math.round(caught.reduce(function(a,e){return a+(e.life-e.first)},0)/caught.length):0;
+    $('kpis').innerHTML='<div class="kpi"><span>Engines that reached end of life</span><div class="big">'+ev.length+'</div></div><div class="kpi"><span>Caught early by SkyFix</span><div class="big" style="color:var(--green)">'+caught.length+'</div></div><div class="kpi"><span>Average warning</span><div class="big">'+lead+'<span style="font-size:18px"> cycles</span></div></div><div class="kpi"><span>Estimated savings</span><div class="big" style="color:var(--green)">'+money(base-withSF)+'</div></div>';
+    l1='Without prediction';l2='With SkyFix';
+    $('impnote').textContent='An engine counts as caught if SkyFix flagged it red before it reached end of life. The comparison assumes every caught engine is removed on a planned schedule and every missed one fails in service.';
+  }
+  $('impchart').innerHTML='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Cost comparison">'+bar(10,base,l1,'var(--red)')+bar(54,withSF,l2,'var(--green)')+'</svg>';
+}
+
+// ---- How it works ----
+var STEPS=[
+ ['1 Readings','Every flight, the engine\'s sensors record numbers such as temperatures, pressures and speeds. Each flight adds one new row to the data. These are the last readings for the engine you chose.'],
+ ['2 Clean','Sensors are noisy, and sometimes a number is missing. SkyFix skips unusable rows and averages the last 5 flights, so one odd reading does not cause a false alarm. The thin line is raw, the thick line is cleaned.'],
+ ['3 Patterns','SkyFix measures how far each sensor has moved from its healthy starting level, and which way it is moving now. Worn parts push a few sensors steadily in one direction.'],
+ ['4 Predict','The model has seen many engines run until they failed. It compares this engine\'s patterns with theirs and answers: how many flights are left, and within what range.'],
+ ['5 Decide','The prediction becomes an action. The lower end of the range sets a safe deadline, the planner books a hangar slot before it, and a work order is drafted for the team.']
+];
+function mean(a){var s=0;a.forEach(function(v){s+=v});return s/Math.max(1,a.length)}
+function renderHow(){
+  var e=getE(), c=cyc(e);$('howEng').value=sel;
+  var sh='';STEPS.forEach(function(s,i){sh+='<button data-step="'+(i+1)+'"'+(i+1===howStep?' aria-current="step"':'')+'>'+s[0]+'</button>'});
+  $('stepper').innerHTML=sh;
+  var b='<h2>'+STEPS[howStep-1][0]+'</h2><p>'+STEPS[howStep-1][1]+'</p><p class="sub" style="font-size:14px">'+nm(e)+', fleet cycle '+c+'.</p>';
+  var cycAt=function(i){return e.cycles?e.cycles[i]:i+1};
+  if(howStep===1){
+    b+='<div class="tblwrap"><table class="fmt"><tr><th>Cycle</th>';SNAMES.slice(0,6).forEach(function(n){b+='<th>'+n+'</th>'});b+='</tr>';
+    for(var i=Math.max(0,c-6);i<c;i++){b+='<tr><td>'+cycAt(i)+'</td>';for(var k=0;k<Math.min(6,SNAMES.length);k++)b+='<td>'+e.se[k][i].toFixed(2)+'</td>';b+='</tr>'}
+    b+='</table></div>';
+  }
+  if(howStep===2){
+    var k0=topSens(e,1)[0].k, a=e.se[k0].slice(0,c), sm=a.map(function(v,i){return mean(a.slice(Math.max(0,i-4),i+1))});
+    var mn=Math.min.apply(null,a),mx=Math.max.apply(null,a),W=600,H=150,P=function(arr){var p='';arr.forEach(function(v,i){p+=(i?'L':'M')+(10+i/Math.max(1,c-1)*(W-20)).toFixed(1)+' '+(H-14-(v-mn)/(mx-mn+1e-9)*(H-28)).toFixed(1)});return p};
+    b+='<h3>'+SNAMES[k0]+'</h3><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Raw versus cleaned sensor values"><path d="'+P(a)+'" fill="none" stroke="var(--muted)" stroke-width="1" opacity="0.7"/><path d="'+P(sm)+'" fill="none" stroke="var(--navy)" stroke-width="3"/></svg>';
+    b+='<p class="sub" style="font-size:14px">Latest raw value '+a[c-1].toFixed(2)+', cleaned value '+sm[c-1].toFixed(2)+'.</p>';
+  }
+  if(howStep===3){
+    var rows=SNAMES.map(function(_,k){var a=e.se[k].slice(0,c),n5=a.slice(-5),p5=a.slice(-10,-5),f5=a.slice(0,5),dr=(mean(n5)-mean(f5))/SSD[k],tr=p5.length?mean(n5)-mean(p5):0;return{n:SNAMES[k],now:a[c-1],avg:mean(n5),dr:dr,tr:tr}}).sort(function(x,y){return Math.abs(y.dr)-Math.abs(x.dr)});
+    b+='<div class="tblwrap"><table class="fmt"><tr><th>Sensor</th><th>Now</th><th>5-flight average</th><th>Drift from healthy</th><th>Moving</th></tr>';
+    rows.forEach(function(r){b+='<tr><td>'+r.n+'</td><td>'+r.now.toFixed(2)+'</td><td>'+r.avg.toFixed(2)+'</td><td>'+r.dr.toFixed(1)+' units</td><td>'+(Math.abs(r.tr)<0.02?'steady':r.tr>0?'up':'down')+'</td></tr>'});
+    b+='</table></div><p class="sub" style="font-size:14px">Drift is measured in units of how much that sensor normally varies, so different sensors can be compared.</p>';
+  }
+  if(howStep===4){
+    b+='<div class="kpis"><div class="kpi"><span>Predicted flights left</span><div class="big">'+Math.round(val(e))+'</div></div>'+(HASBAND?'<div class="kpi"><span>Likely range</span><div class="big" style="font-size:34px">'+Math.round(lowv(e))+' to '+Math.round(e.hi[c-1])+'</div></div>':'')+'</div>'+'<div class="gauge">'+gaugeSVG(val(e),lowv(e),HASBAND?e.hi[c-1]:val(e),HASBAND)+'</div>'+chartSVG(e)+'<div class="legend">'+legendHTML()+'</div>';
+  }
+  if(howStep===5){
+    var s=stat(e), dl=Math.max(now,now+Math.round(lowv(e))-MARGIN);
+    b+='<p><span class="status '+s.s+'">'+(s.gone?'End of life':s.s==='red'?'Act now':s.s==='amber'?'Plan work':'Healthy')+'</span></p><p><b>'+actionFor(e)+'</b></p>';
+    if(!s.gone&&s.s!=='green')b+='<p>Safe deadline: cycle '+dl+' (the low end of the range, minus a '+MARGIN+'-cycle margin).</p>';
+    b+='<h3>The rules</h3><ul class="steps"><li>Under '+RED+' flights left: act now.</li><li>'+RED+' to '+AMBER+': plan work at the next check.</li><li>Over '+AMBER+': keep monitoring.</li></ul><div class="row"><a class="btn" href="#/plan" data-go="plan">Open the planner</a><a class="btn ghost" href="#/engine" data-go="engine">Open work order</a></div>';
+  }
+  $('howbody').innerHTML=b;
+  $('hback').disabled=howStep===1;$('hnext').textContent=howStep===5?'Start again':'Next step';
+}
+
+// ---- Manual input (Option 1) ----
+var PRESETS={healthy:[0.05,-0.05,0,0.05],mid:[1.3,-1.2,1,-0.9],worn:[2.3,-2.1,1.8,-1.6],failing:[3.2,-2.8,2.4,-2.1]};
+function buildMForm(){
+  var h='';SENS.forEach(function(s,i){h+='<div class="sl"><label for="m'+i+'">'+s[0]+'</label><input type="range" id="m'+i+'" min="-4" max="4" step="0.1" value="'+PRESETS.healthy[i]+'"><output id="mo'+i+'">0.0</output></div>'});
+  $('mform').innerHTML=h;
+  [0,1,2,3].forEach(function(i){$('m'+i).addEventListener('input',renderManual)});
+}
+function renderManual(){
+  var x=[0,1,2,3].map(function(i){var v=+$('m'+i).value;$('mo'+i).textContent=v.toFixed(1);return v});
+  var p=dmPredict(x), s=st(p.v), dev=x.map(Math.abs), sum=dev.reduce(function(a,b){return a+b},0)||1;
+  var act=s==='red'?'Schedule maintenance within about 5 flights.':s==='amber'?'Plan work at the next scheduled check.':'Keep monitoring. No action needed.';
+  var h='<div class="gauge">'+gaugeSVG(p.v,p.lo,p.hi,true)+'</div><div class="kpis"><div class="kpi"><span>Predicted flights left</span><div class="big">'+Math.round(p.v)+'</div></div><div class="kpi"><span>Likely range</span><div class="big" style="font-size:34px">'+Math.round(p.lo)+' to '+Math.round(p.hi)+'</div></div><div class="kpi"><span>Status</span><div style="margin-top:8px"><span class="status '+s+'">'+(s==='red'?'Act now':s==='amber'?'Plan work':'Healthy')+'</span></div></div></div><p><b>'+act+'</b></p><h3>Which readings pushed the prediction</h3>';
+  x.forEach(function(v,i){var pct=Math.round(dev[i]/sum*100);h+='<div class="attr"><div class="t"><span>'+SENS[i][0]+'</span><b>'+pct+'%</b></div><div class="tr"><i style="width:'+pct+'%"></i></div></div>'});
+  $('mres').innerHTML=h;
+}
+
+// ---- Learn ----
+var GLOSS=[
+ ['Twin-engine aircraft','Most airliners have two engines. SkyFix tracks each engine separately, because the left and right engine can wear at different speeds.'],
+ ['Flight cycle','One takeoff and landing. Engine wear is counted in cycles, not calendar days.'],
+ ['RUL (remaining useful life)','How many more flight cycles an engine can run before it needs repair. SkyFix predicts this number.'],
+ ['Sensor','A small device in the engine that measures one thing, such as a temperature, a pressure or a speed.'],
+ ['Drift','The slow change in a sensor reading as parts wear. Drift away from the healthy level is the main warning sign.'],
+ ['Prediction range','The low and high end of where the true value probably lies. A wide range means the model is less sure.'],
+ ['Safe deadline','The last cycle by which work should start, set by the low end of the range, with a small margin.'],
+ ['AOG (aircraft on ground)','An aircraft that cannot fly because of a fault. It is the costly event SkyFix tries to avoid.'],
+ ['C-MAPSS','A public NASA dataset of simulated jet engines run until failure. It is the standard way to test this kind of model.']
+];
+var FAQ=[
+ ['Where do the sensor numbers come from?','On a real aircraft, from the engine data recorder after each flight. In this project, from the NASA C-MAPSS dataset or from the simulated demo.'],
+ ['How does the model know an engine is wearing out?','It learns from engines that ran until failure. It sees which sensor patterns came before failure, then looks for those patterns in a working engine.'],
+ ['Why show a range and not one number?','Predictions are never exact. The low end of the range is used for deadlines so that work is planned a little early, not late.'],
+ ['What happens if I upload my own file?','The page reads it inside your browser and every page switches to your data. Nothing is sent to a server.'],
+ ['Why are there 24 engines?','The demo fleet is 12 aircraft with two engines each. Each engine wears at its own pace, so each gets its own prediction.'],
+ ['Can I trust the savings figure?','Only as much as the two cost numbers you type. It is an estimate for comparing choices, not an audited saving.']
+];
+function buildLearn(){
+  var g='';GLOSS.forEach(function(x){g+='<details class="q"><summary>'+x[0]+'</summary><p>'+x[1]+'</p></details>'});$('gloss').innerHTML=g;
+  var f='';FAQ.forEach(function(x){f+='<details class="q"><summary>'+x[0]+'</summary><p>'+x[1]+'</p></details>'});$('faq').innerHTML=f;
+}
+
+// ---- routing & render ----
+function render(){
+  $('tv').textContent=now;$('t').value=now;
+  $('mode').textContent=uploaded?'Data: your file ('+dataName+')':'Data: simulated demo engines';
+  if(page==='home')renderHome();
+  if(page==='how')renderHow();
+  if(page==='fleet')renderFleet();
+  if(page==='engine')renderEngine();
+  if(page==='plan')renderPlan();
+  if(page==='cost')renderCost();
+  if(page==='input'){renderManual();if(!srvOK&&!tBusy)checkServer()}
+}
+function show(){
+  ROUTES.forEach(function(r){$('pg-'+r).classList.toggle('on',r===page)});
+  document.querySelectorAll('#nav a').forEach(function(a){if(a.dataset.go===page)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  $('ctl').classList.toggle('hide',CTLPAGES.indexOf(page)<0);
+  render();
+}
+function go(name,noScroll){
+  if(ROUTES.indexOf(name)<0)name='home';page=name;
+  try{if(location.hash!=='#/'+name)location.hash='#/'+name}catch(x){}
+  show();if(!noScroll){try{window.scrollTo(0,0)}catch(x2){}}
+}
+window.addEventListener('hashchange',function(){var h=(location.hash||'').replace(/^#\/?/,'');if(ROUTES.indexOf(h)>=0&&h!==page){page=h;show()}});
+document.addEventListener('click',function(ev){
+  var t=ev.target&&ev.target.closest?ev.target.closest('[data-go]'):null;
+  if(t){ev.preventDefault();if(t.dataset.step)howStep=+t.dataset.step;go(t.dataset.go);return}
+  var tile=ev.target.closest?ev.target.closest('.tile,.feed button'):null;
+  if(tile&&tile.dataset.id){sel=+tile.dataset.id;go('engine')}
+});
+$('chips').addEventListener('click',function(ev){var b=ev.target.closest('.chip');if(!b)return;filt=b.dataset.f;render()});
+$('stepper').addEventListener('click',function(ev){var b=ev.target.closest('button');if(!b)return;howStep=+b.dataset.step;render()});
+$('hback').addEventListener('click',function(){if(howStep>1){howStep--;render()}});
+$('hnext').addEventListener('click',function(){howStep=howStep===5?1:howStep+1;render()});
+$('howEng').addEventListener('change',function(){sel=+this.value;render()});
+$('engSel').addEventListener('change',function(){sel=+this.value;render()});
+$('t').addEventListener('input',function(){now=+this.value;render()});
+$('cap').addEventListener('input',renderPlan);
+$('aog').addEventListener('input',renderCost);$('plc').addEventListener('input',renderCost);
+function stop(){if(timer){clearInterval(timer);timer=null}$('play').textContent='Play'}
+$('play').addEventListener('click',function(){if(timer){stop();return}if(now>=MAXC)now=1;$('play').textContent='Pause';timer=setInterval(function(){now=Math.min(MAXC,now+2);render();if(now>=MAXC)stop()},160)});
+$('reset').addEventListener('click',function(){stop();now=1;render()});
+$('wo').addEventListener('click',function(){withLoader('Drafting the work order…',900,function(){var p=$('wotext');p.textContent=workOrder();p.hidden=false;$('copy').hidden=false})});
+$('copy').dataset.l='Copy';$('copyplan').dataset.l='Copy plan as text';
+function copyText(btn,txt){try{navigator.clipboard.writeText(txt).then(function(){btn.textContent='Copied'},function(){btn.textContent='Select text to copy'})}catch(x){btn.textContent='Select text to copy'}var old=btn.dataset.l;setTimeout(function(){btn.textContent=old},1500)}
+$('copy').addEventListener('click',function(){copyText(this,$('wotext').textContent)});
+$('copyplan').addEventListener('click',function(){copyText(this,planText())});
+document.querySelectorAll('[data-preset]').forEach(function(b){b.addEventListener('click',function(){var p=PRESETS[b.dataset.preset];[0,1,2,3].forEach(function(i){$('m'+i).value=p[i]});renderManual()})});
+
+// ---- loading screen ----
+var loaderT=0;
+function showLoader(msg){clearTimeout(loaderT);$('lmsg').textContent=msg;$('loader').classList.remove('gone')}
+function hideLoader(){$('loader').classList.add('gone')}
+function withLoader(msg,minMs,fn){showLoader(msg);var t0=Date.now();setTimeout(function(){try{fn()}finally{loaderT=setTimeout(hideLoader,Math.max(0,minMs-(Date.now()-t0)))}},80)}
+
+// ---- file loading ----
+function showMsg(t,cls){var m=$('msg');m.textContent=t;m.className='msg show '+cls}
+function parseCSV(text){
+  var lines=text.replace(/\r/g,'').split('\n').filter(function(l){return l.trim().length});
+  if(lines.length<2)throw new Error('The file has no data rows.');
+  if(lines.length>250000)throw new Error('The file is too large for the browser. Keep it under 250,000 rows.');
+  var d=lines[0].indexOf(',')>=0?',':(lines[0].indexOf('\t')>=0?'\t':';');
+  var head=lines[0].split(d).map(function(h){return h.trim().replace(/^"|"$/g,'').toLowerCase()});
+  var rows=[],raws=[];for(var i=1;i<lines.length;i++){var cells=lines[i].split(d);raws.push(cells);rows.push(cells.map(function(x){return parseFloat(x)}))}
+  return{head:head,rows:rows,raws:raws};
+}
+function colIdx(head,names){for(var i=0;i<names.length;i++){var j=head.indexOf(names[i]);if(j>=0)return j}return -1}
+function loadCSVText(text,name){
+  var p=parseCSV(text), h=p.head;
+  var iu=colIdx(h,['unit','engine','engine_id','id']), ic=colIdx(h,['cycle','time','flight_cycle']), ip=colIdx(h,['pred_rul','predicted_rul','rul_pred']);
+  var miss=[];if(iu<0)miss.push('unit');if(ic<0)miss.push('cycle');if(ip<0)miss.push('pred_rul');
+  if(miss.length)throw new Error('Missing column'+(miss.length>1?'s':'')+': '+miss.join(', ')+'. Found: '+h.join(', ')+'.');
+  var il=colIdx(h,['pred_lo','lo']), ih=colIdx(h,['pred_hi','hi']), it=colIdx(h,['true_rul','rul','actual_rul']);
+  var ia=colIdx(h,['aircraft','tail','tail_number','tail_no']);
+  var reserved=[iu,ic,ip,il,ih,it,ia];
+  h.forEach(function(n,i){if(/^op\d$/.test(n)||/^setting\d$/.test(n))reserved.push(i)});
+  var sc=[];for(var k=0;k<h.length&&sc.length<12;k++){if(reserved.indexOf(k)>=0)continue;var lo=1e99,hi=-1e99,ok=true;
+    for(var r=0;r<Math.min(p.rows.length,500);r++){var v=p.rows[r][k];if(!isFinite(v)){ok=false;break}lo=Math.min(lo,v);hi=Math.max(hi,v)}
+    if(ok&&hi>lo)sc.push(k)}
+  var groups={},bad=0,acOf={};
+  p.rows.forEach(function(r,ri){if(!isFinite(r[iu])||!isFinite(r[ic])||!isFinite(r[ip])){bad++;return}(groups[r[iu]]=groups[r[iu]]||[]).push(r);if(ia>=0&&acOf[r[iu]]===undefined)acOf[r[iu]]=String(p.raws[ri][ia]).trim().replace(/^"|"$/g,'')});
+  var ids=Object.keys(groups).map(Number).sort(function(a,b){return a-b});
+  if(!ids.length)throw new Error('No usable rows. Check that unit, cycle and pred_rul are numbers.');
+  var cut=ids.length>300;if(cut)ids=ids.slice(0,300);
+  var hasBand=il>=0&&ih>=0, hasTrue=it>=0, maxPred=125, engs=[], feed=[];
+  ids.forEach(function(id){
+    var g=groups[id].sort(function(a,b){return a[ic]-b[ic]});
+    var pr=g.map(function(r){return Math.max(0,r[ip])});pr.forEach(function(v){if(v>maxPred)maxPred=v});
+    var first=-1,amb=-1;for(var j=0;j<pr.length;j++){if(amb<0&&pr[j]<AMBER)amb=j+1;if(pr[j]<RED){first=j+1;break}}
+    var en={id:id,life:g.length,pr:pr,lo:hasBand?g.map(function(r){return Math.max(0,Math.min(r[il],r[ip]))}):pr,hi:hasBand?g.map(function(r){return Math.max(r[ih],r[ip])}):pr,
+      tr:hasTrue?g.map(function(r){return r[it]}):null,se:sc.map(function(k){return g.map(function(r){return isFinite(r[k])?r[k]:0})}),first:first,amb:amb,cycles:g.map(function(r){return r[ic]})};
+    if(ia>=0&&acOf[id])en.ac=/^\d+$/.test(acOf[id])?acName(+acOf[id]):acOf[id];
+    engs.push(en);if(amb>0)feed.push({c:amb,id:id,t:'amber'});if(first>0)feed.push({c:first,id:id,t:'red'});
+  });
+  feed.sort(function(a,b){return b.c-a.c});
+  var maxLife=0;engs.forEach(function(e){if(e.life>maxLife)maxLife=e.life});
+  uploaded=true;HASBAND=hasBand;HASTRUE=hasTrue;CLIP=Math.ceil(maxPred);engines=engs;feedAll=feed;dataName=name;assignAC();
+  SNAMES=sc.map(function(k){return h[k]});SSD=sdOf(engines,sc.length);
+  if(!SNAMES.length){SNAMES=['(no sensor columns)'];SSD=[1];engines.forEach(function(e){e.se=[e.pr.map(function(){return 0})]})}
+  MAXC=maxLife;$('t').max=MAXC;now=Math.max(1,Math.round(MAXC*0.6));pickSel();fillSelects();
+  showMsg('Loaded '+engs.length+' engines from '+name+(bad?' ('+bad+' unusable rows skipped)':'')+(cut?' (first 300 engines shown)':'')+'. '+(hasBand?'Prediction ranges found. ':'No pred_lo and pred_hi columns, so no range is shown. ')+(hasTrue?'Actual life found. ':'')+(sc.length?'Sensors used: '+SNAMES.join(', ')+'.':'No sensor columns found.'),'ok');
+  render();
+}
+function safeLoad(text,name){try{loadCSVText(text,name)}catch(err){showMsg(err.message||'Could not read the file.','err')}}
+function exampleCSV(){
+  var out='unit,aircraft,cycle,pred_rul,pred_lo,pred_hi,true_rul,s2,s3\n';
+  var ke=engines,kf=feedAll;buildDemo();var sav=engines;engines=ke;feedAll=kf;
+  sav.slice(0,8).forEach(function(e){for(var c=1;c<=e.life;c++)out+=[e.id,e.ac,c,e.pr[c-1].toFixed(1),e.lo[c-1].toFixed(1),e.hi[c-1].toFixed(1),e.tr[c-1],e.se[0][c-1].toFixed(3),e.se[1][c-1].toFixed(3)].join(',')+'\n'});
+  return out;
+}
+$('file').addEventListener('change',function(){
+  var f=this.files&&this.files[0];if(!f)return;
+  if(f.size>20*1024*1024){showMsg('That file is over 20 MB. Upload only the columns listed above.','err');return}
+  var r=new FileReader();r.onload=function(){withLoader('Reading your file…',1200,function(){safeLoad(String(r.result),f.name)})};r.onerror=function(){showMsg('The browser could not read that file.','err')};r.readAsText(f);
+});
+$('example').addEventListener('click',function(){stop();withLoader('Building the example fleet…',1100,function(){safeLoad(exampleCSV(),'the example file')})});
+$('demo').addEventListener('click',function(){stop();withLoader('Loading the demo fleet…',1000,function(){setDemo();$('msg').className='msg';$('file').value='';render()})});
+
+// ---- Option 3: train from NASA files (talks to server.py) ----
+var API=(location.protocol.indexOf('http')===0&&location.port==='5000')?'':'http://127.0.0.1:5000';
+var srvOK=false, srvSample=false, tPoll=null, tBusy=false, tCSV='', tSubset='FD001';
+function tMsg(t,cls){var m=$('tmsg');m.textContent=t;m.className='msg show '+(cls||'')}
+function fileRole(n){n=(n||'').toLowerCase();return/^rul/.test(n)?'rul':/^test/.test(n)?'test':/^train/.test(n)?'train':''}
+function trainReady(){return $('fTrain').files.length&&$('fTest').files.length&&$('fRul').files.length}
+function updTrainBtns(){$('trainBtn').disabled=!(srvOK&&trainReady()&&!tBusy);$('trainSample').disabled=!(srvOK&&srvSample&&!tBusy)}
+function checkServer(){
+  var box=$('srv');box.className='callout srv';box.textContent='Checking the training server…';
+  fetch(API+'/api/health').then(function(r){return r.json()}).then(function(j){
+    srvOK=!!(j&&j.ok&&j.script);srvSample=!!(j&&j.sample);
+    box.className='callout srv ok';box.textContent=srvOK?'Training server connected.':'Server is running but train_rul.py was not found next to server.py.';
+    if(!srvOK)box.className='callout srv bad';updTrainBtns();
+  }).catch(function(){
+    srvOK=false;srvSample=false;box.className='callout srv';
+    box.innerHTML='<span>Training server not running. In the VS Code terminal run <code>python server.py</code>, then open <code>http://localhost:5000</code>.</span>';
+    var b=document.createElement('button');b.className='btn ghost';b.type='button';b.textContent='Check again';b.onclick=checkServer;box.appendChild(b);updTrainBtns();
+  });
+}
+function onTrainFile(slot,input){
+  var f=input.files&&input.files[0];tMsg('', '');$('tmsg').className='msg';
+  if(f){
+    var m=/FD00([1-4])/i.exec(f.name);if(m)$('subset').value='FD00'+m[1];
+    var role=fileRole(f.name);
+    if(role&&role!==slot){tMsg('That looks like the '+role+' file, but it is in the '+slot+' slot. Check the three boxes.','err')}
+  }
+  updTrainBtns();
+}
+['Train:train','Test:test','Rul:rul'].forEach(function(x){var p=x.split(':'),el=$('f'+p[0]);el.addEventListener('change',function(){onTrainFile(p[1],el)})});
+function setBusy(b){tBusy=b;$('tbar').hidden=!b;updTrainBtns()}
+function showLog(lines){var p=$('tlog');p.hidden=!lines.length;p.textContent=lines.join('\n');p.scrollTop=p.scrollHeight}
+function pollJob(id,subset){
+  clearInterval(tPoll);
+  tPoll=setInterval(function(){
+    fetch(API+'/api/job/'+id).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})}).then(function(o){
+      if(!o.ok){clearInterval(tPoll);setBusy(false);tMsg(o.j.error||'Lost the training job.','err');return}
+      var j=o.j;showLog(j.log||[]);
+      if(j.status==='running'){tMsg('Training… '+Math.round(j.seconds)+' s. Larger subsets take a few minutes.','');return}
+      clearInterval(tPoll);
+      if(j.status==='error'){setBusy(false);tMsg(j.error||'Training failed.','err');return}
+      var score=(j.log||[]).filter(function(l){return l.indexOf('TEST RMSE')>=0})[0]||'';
+      tMsg('Training finished in '+Math.round(j.seconds)+' s. Loading the predictions…','ok');
+      fetch(API+'/api/job/'+id+'/predictions.csv').then(function(r){if(!r.ok)throw new Error('The server did not return the predictions.');return r.text()}).then(function(text){
+        tCSV=text;tSubset=subset;
+        withLoader('Loading the trained predictions…',900,function(){
+          try{loadCSVText(text,'trained '+subset);tMsg('Done in '+Math.round(j.seconds)+' s. '+(score?score+'. ':'')+'The whole site now shows these predictions.','ok');$('dlPred').hidden=false;$('toFleet').hidden=false}
+          catch(err){tMsg(err.message||'Could not read the predictions.','err')}
+          setBusy(false);
+        });
+      }).catch(function(err){setBusy(false);tMsg(err.message||'Could not fetch the predictions.','err')});
+    }).catch(function(){clearInterval(tPoll);setBusy(false);tMsg('Lost contact with the training server. Is python server.py still running?','err')});
+  },1000);
+}
+function startTrain(sample){
+  if(tBusy)return;stop();
+  var url,opts;$('dlPred').hidden=true;$('toFleet').hidden=true;showLog([]);
+  if(sample){url='/api/train-sample';opts={method:'POST'}}
+  else{
+    var fd=new FormData();fd.append('subset',$('subset').value);
+    fd.append('train',$('fTrain').files[0]);fd.append('test',$('fTest').files[0]);fd.append('rul',$('fRul').files[0]);
+    url='/api/train';opts={method:'POST',body:fd};
+  }
+  setBusy(true);tMsg('Sending files to the training server…','');
+  fetch(API+url,opts).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})}).then(function(o){
+    if(!o.ok){setBusy(false);tMsg(o.j.error||'The server refused the files.','err');return}
+    pollJob(o.j.job,sample?'FD001':$('subset').value);
+  }).catch(function(){setBusy(false);tMsg('Could not reach the training server. Run python server.py and open http://localhost:5000.','err')});
+}
+$('trainBtn').addEventListener('click',function(){startTrain(false)});
+$('trainSample').addEventListener('click',function(){startTrain(true)});
+$('dlPred').addEventListener('click',function(){
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([tCSV],{type:'text/csv'}));a.download='predictions_'+tSubset+'.csv';document.body.appendChild(a);a.click();a.remove();
+});
+
+buildMForm();buildLearn();setDemo();checkServer();
+var h0=(location.hash||'').replace(/^#\/?/,'');page=ROUTES.indexOf(h0)>=0?h0:'home';
+show();
+setTimeout(hideLoader,1600);
+})();
+</script>
+</body>
+</html>
